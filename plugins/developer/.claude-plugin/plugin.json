@@ -1,0 +1,16 @@
+{
+  "name": "praxis-developer",
+  "version": "0.1.0",
+  "description": "Praxis Developer plugin: research, plan, implement, TDD, arbiter, MR intention.",
+  "author": {
+    "name": "dfuture-co"
+  },
+  "license": "Apache-2.0",
+  "keywords": [
+    "praxis",
+    "developer",
+    "implementation",
+    "tdd"
+  ],
+  "defaultEnabled": true
+}

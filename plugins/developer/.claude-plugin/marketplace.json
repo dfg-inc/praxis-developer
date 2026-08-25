@@ -1,0 +1,15 @@
+{
+  "name": "praxis",
+  "owner": {
+    "name": "dfuture-co"
+  },
+  "description": "Praxis Phase 1 marketplace entry for praxis-developer.",
+  "plugins": [
+    {
+      "name": "praxis-developer",
+      "source": "./",
+      "description": "Praxis Developer — plans, TDD, repair loop, MR intention.",
+      "version": "0.1.0"
+    }
+  ]
+}
