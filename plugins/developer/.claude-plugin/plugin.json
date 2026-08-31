@@ -1,6 +1,6 @@
 {
   "name": "praxis-developer",
-  "version": "0.1.0-alpha.5",
+  "version": "0.1.0-alpha.6",
   "description": "Praxis Developer plugin: research, plan, implement, TDD, arbiter, MR intention.",
   "author": {
     "name": "dfuture-co"
