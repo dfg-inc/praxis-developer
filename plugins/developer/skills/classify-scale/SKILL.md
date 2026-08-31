@@ -1,6 +1,6 @@
 ---
 name: classify-scale
-description: Classify task scale: exploratory, bounded, or architectural (WBS 5.6).
+description: "Classify task scale: exploratory, bounded, or architectural (WBS 5.6)."
 ---
 
 # Classify Scale
