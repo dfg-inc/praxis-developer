@@ -9,7 +9,7 @@
       "name": "praxis-developer",
       "source": "./",
       "description": "Praxis Developer — plans, TDD, repair loop, MR intention.",
-      "version": "0.1.0-alpha.4"
+      "version": "0.1.0-alpha.5"
     }
   ]
 }
