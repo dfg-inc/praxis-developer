@@ -18,6 +18,10 @@ import {
 } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  applyChangeSpec,
+  planStepForChange,
+} from "./lib/apply-change-spec.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const arbiter = join(here, "final-arbiter.mjs");
@@ -62,6 +66,10 @@ if (!existsSync(changeSpecPath)) {
   process.exit(1);
 }
 const changeSpec = JSON.parse(readFileSync(changeSpecPath, "utf8"));
+if (!Array.isArray(changeSpec.changes) || changeSpec.changes.length === 0) {
+  console.error("change-spec.changes must be a non-empty array");
+  process.exit(1);
+}
 
 const runDir = join(designDir, "developer-run");
 mkdirSync(runDir, { recursive: true });
@@ -96,7 +104,8 @@ writeFileSync(
   JSON.stringify(research, null, 2) + "\n",
 );
 
-// 3) Plan
+// 3) Plan — every machine op, including creates and package/tooling edits
+const planSteps = changeSpec.changes.map((c, i) => planStepForChange(c, i + 1));
 const planMd = `# Implementation plan — ${arch.workPackageId}
 
 ## Research
@@ -105,11 +114,9 @@ Files: ${research.files.join(", ") || "(none)"}
 
 ## Steps
 
-${changeSpec.changes
-  .map((c, i) => `${i + 1}. Edit \`${c.file}\`: ${c.description}`)
-  .join("\n")}
+${planSteps.join("\n")}
 
-${changeSpec.changes.length + 1}. Run final-arbiter (build/test/lint)
+${changeSpec.changes.length + 1}. Run final-arbiter (build/test/lint per verificationPolicy)
 ${changeSpec.changes.length + 2}. Emit developer.quality.handoff
 `;
 writeFileSync(join(runDir, "plan.md"), planMd);
@@ -120,7 +127,7 @@ if (!approve) {
   writeFileSync(
     approvalPath,
     JSON.stringify(
-      { status: "pending", reason: "pass --approve to continue" },
+      { status: "pending", reason: "pass --approve to continue", planPath: "plan.md" },
       null,
       2,
     ) + "\n",
@@ -131,26 +138,19 @@ if (!approve) {
 writeFileSync(
   approvalPath,
   JSON.stringify(
-    { status: "approved", approvedAt: new Date().toISOString(), mode: "cli-flag" },
+    {
+      status: "approved",
+      approvedAt: new Date().toISOString(),
+      mode: "cli-flag",
+      planSteps: planSteps.length,
+    },
     null,
     2,
   ) + "\n",
 );
 
 function applyChanges() {
-  for (const c of changeSpec.changes) {
-    const fp = join(product, c.file);
-    if (!existsSync(fp)) throw new Error(`missing file ${c.file}`);
-    let text = readFileSync(fp, "utf8");
-    if (!text.includes(c.match)) {
-      if (text.includes(c.replace)) {
-        continue; // already applied
-      }
-      throw new Error(`match not found in ${c.file}: ${c.match}`);
-    }
-    text = text.replace(c.match, c.replace);
-    writeFileSync(fp, text);
-  }
+  return applyChangeSpec(product, changeSpec.changes);
 }
 
 function runArbiter() {
@@ -175,21 +175,17 @@ function runArbiter() {
 }
 
 function repairOnce(attempt) {
-  // Deterministic repair: re-apply change-spec match→replace (product-agnostic).
-  for (const c of changeSpec.changes) {
-    const fp = join(product, c.file);
-    if (!existsSync(fp)) continue;
-    let text = readFileSync(fp, "utf8");
-    if (text.includes(c.replace)) continue;
-    if (text.includes(c.match)) {
-      text = text.replace(c.match, c.replace);
-      writeFileSync(fp, text);
-    }
-  }
+  // Deterministic repair: re-apply change-spec (edit + create), product-agnostic.
+  const results = applyChangeSpec(product, changeSpec.changes);
   writeFileSync(
     join(runDir, `repair-${attempt}.json`),
     JSON.stringify(
-      { attempt, action: "reapply-change-spec", at: new Date().toISOString() },
+      {
+        attempt,
+        action: "reapply-change-spec",
+        results,
+        at: new Date().toISOString(),
+      },
       null,
       2,
     ) + "\n",
@@ -197,11 +193,16 @@ function repairOnce(attempt) {
 }
 
 // 5) Implement
-applyChanges();
+let applied;
+try {
+  applied = applyChanges();
+} catch (err) {
+  console.error(err instanceof Error ? err.message : String(err));
+  process.exit(1);
+}
 writeFileSync(
   join(runDir, "implement.json"),
-  JSON.stringify({ applied: changeSpec.changes.map((c) => c.file) }, null, 2) +
-    "\n",
+  JSON.stringify({ applied }, null, 2) + "\n",
 );
 
 // 6) Arbiter + repair loop
@@ -209,7 +210,12 @@ let arb = runArbiter();
 let repairs = 0;
 while (arb.exitCode !== 0 && repairs < maxRepairs) {
   repairs += 1;
-  repairOnce(repairs);
+  try {
+    repairOnce(repairs);
+  } catch (err) {
+    console.error(err instanceof Error ? err.message : String(err));
+    process.exit(1);
+  }
   arb = runArbiter();
 }
 writeFileSync(
@@ -232,19 +238,44 @@ if (arb.exitCode !== 0) {
   process.exit(1);
 }
 
-const verification = {
-  build: true,
-  tests: true,
-  lint: true,
-  packageCriteria: true,
-};
-for (const r of arb.parsed?.results ?? []) {
-  if (r.label === "build") verification.build = !!r.ok;
-  if (r.label === "test") verification.tests = !!r.ok;
-  if (r.label === "lint") verification.lint = !!r.ok;
+const policy = changeSpec.verificationPolicy ?? {};
+const requireTests =
+  policy.requireTests === true ||
+  (policy.requireTests !== false &&
+    (changeSpec.changes.some(
+      (c) =>
+        /(^|\/)test\//.test(c.file) ||
+        /\.test\.(js|mjs|cjs)$/.test(c.file) ||
+        c.file === "package.json",
+    ) ||
+      (changeSpec.acceptanceChecks ?? []).some((c) => c.type === "npm-test")));
+
+const results = arb.parsed?.results ?? [];
+function step(label) {
+  return results.find((r) => r.label === label);
 }
+function executedOk(label, required) {
+  const s = step(label);
+  if (!s) return !required;
+  if (s.skipped) return !required; // skip ≠ executed success when required
+  return !!s.ok;
+}
+
+const verification = {
+  build: executedOk("build", !!policy.requireBuild),
+  tests: executedOk("test", requireTests),
+  lint: executedOk("lint", !!policy.requireLint),
+  packageCriteria: false,
+};
 verification.packageCriteria =
   verification.build && verification.tests && verification.lint;
+
+if (requireTests && !verification.tests) {
+  console.error(
+    "Developer PASS refused: tests did not execute successfully (requireTests)",
+  );
+  process.exit(1);
+}
 
 const qualityHandoff = {
   contract: "developer.quality.handoff",
@@ -254,7 +285,9 @@ const qualityHandoff = {
   requirementIds: changeSpec.requirementIds ?? [],
   decisionIds: arch.decisionIds,
   verification,
-  acceptanceChecks: changeSpec.acceptanceChecks ?? [],
+  acceptanceChecks: (changeSpec.acceptanceChecks ?? []).filter(
+    (c) => c.file && c.contains,
+  ),
 };
 
 const outPath =
@@ -269,6 +302,8 @@ console.log(
       runDir,
       qualityHandoffPath: outPath,
       repairs,
+      planSteps,
+      applied,
       qualityHandoff,
     },
     null,
