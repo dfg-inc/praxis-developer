@@ -75,14 +75,15 @@ Rules:
 2. Draft phases from research (locator/analyzer/pattern-finder outputs). Prefer existing patterns named in research.
 3. Mark TDD phases where behavior changes are testable cheaply.
 4. Write `plan.md` with `status: draft`.
-5. Create/reset `plan-status.md`:
+5. Create/reset `plan-status.md` with **unique** frontmatter scalars (never append duplicate keys — replace `currentPhase` / `status` in place):
 
    ```markdown
    ---
    workPackageId: <id>
    planPath: design/<id>/dev/plan.md
+   status: draft
    currentPhase: 1
-   phases: [{ n: 1, status: pending }]
+   phasesComplete: false
    ---
    # Plan status
    ## Log

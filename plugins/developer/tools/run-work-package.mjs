@@ -17,14 +17,23 @@ import {
   writeFileSync,
 } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import {
   applyChangeSpec,
   planStepForChange,
 } from "./lib/apply-change-spec.mjs";
+import {
+  assertNoDuplicateFrontmatterKeys,
+  updateMarkdownFrontmatter,
+} from "./lib/frontmatter.mjs";
+import {
+  assertDeveloperReadyForQuality,
+  defaultDevPaths,
+} from "./lib/readiness.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const arbiter = join(here, "final-arbiter.mjs");
+const acceptTool = join(here, "accept-work-package.mjs");
 
 const args = process.argv.slice(2);
 function flag(name) {
@@ -59,6 +68,10 @@ if (!arch.features?.every((f) => f.readyForDev)) {
   console.error("not all features readyForDev");
   process.exit(1);
 }
+if (!arch.workPackageId) {
+  console.error("arch handoff missing workPackageId");
+  process.exit(1);
+}
 
 const changeSpecPath = join(designDir, "change-spec.json");
 if (!existsSync(changeSpecPath)) {
@@ -72,16 +85,48 @@ if (!Array.isArray(changeSpec.changes) || changeSpec.changes.length === 0) {
 }
 
 const runDir = join(designDir, "developer-run");
+const devPaths = defaultDevPaths(designDir);
 mkdirSync(runDir, { recursive: true });
+mkdirSync(dirname(devPaths.acceptancePath), { recursive: true });
 
-// 1) Accept
-const accept = {
-  acceptedAt: new Date().toISOString(),
-  workPackageId: arch.workPackageId,
-  archHandoffPath: relative(runDir, archHandoffPath).split("\\").join("/"),
-  product: relative(runDir, product).split("\\").join("/"),
-};
-writeFileSync(join(runDir, "accept.json"), JSON.stringify(accept, null, 2) + "\n");
+// 1) Accept — materialize working view from Architect slice
+{
+  const r = spawnSync(
+    process.execPath,
+    [
+      acceptTool,
+      "--arch-handoff",
+      archHandoffPath,
+      "--design-dir",
+      designDir,
+      "--out",
+      devPaths.acceptancePath,
+    ],
+    { encoding: "utf8" },
+  );
+  if ((r.status ?? 1) !== 0) {
+    console.error(r.stdout ?? "");
+    console.error(r.stderr ?? "");
+    console.error("accept-work-package failed");
+    process.exit(1);
+  }
+  writeFileSync(
+    join(runDir, "accept.json"),
+    JSON.stringify(
+      {
+        acceptedAt: new Date().toISOString(),
+        workPackageId: arch.workPackageId,
+        acceptancePath: relative(runDir, devPaths.acceptancePath)
+          .split("\\")
+          .join("/"),
+        archHandoffPath: relative(runDir, archHandoffPath).split("\\").join("/"),
+        product: relative(runDir, product).split("\\").join("/"),
+      },
+      null,
+      2,
+    ) + "\n",
+  );
+}
 
 // 2) Research codebase (deterministic file listing)
 function listJs(dir, base = dir, out = []) {
@@ -106,6 +151,7 @@ writeFileSync(
 
 // 3) Plan — every machine op, including creates and package/tooling edits
 const planSteps = changeSpec.changes.map((c, i) => planStepForChange(c, i + 1));
+const totalPhases = planSteps.length + 2; // ops + arbiter + quality handoff
 const planMd = `# Implementation plan — ${arch.workPackageId}
 
 ## Research
@@ -120,6 +166,46 @@ ${changeSpec.changes.length + 1}. Run final-arbiter (build/test/lint per verific
 ${changeSpec.changes.length + 2}. Emit developer.quality.handoff
 `;
 writeFileSync(join(runDir, "plan.md"), planMd);
+writeFileSync(devPaths.planPath, planMd);
+
+// plan-status stub (phase 1) — unique frontmatter keys only
+writeFileSync(
+  devPaths.planStatusPath,
+  `---
+workPackageId: ${arch.workPackageId}
+status: pending
+currentPhase: 1
+phasesComplete: false
+updatedAt: ${new Date().toISOString()}
+---
+
+# Plan status — ${arch.workPackageId}
+
+## Log
+
+- ${new Date().toISOString()} created plan (${planSteps.length} implementation steps)
+`,
+);
+assertNoDuplicateFrontmatterKeys(
+  readFileSync(devPaths.planStatusPath, "utf8"),
+  devPaths.planStatusPath,
+);
+
+function appendPlanLog(line) {
+  const prev = readFileSync(devPaths.planStatusPath, "utf8");
+  const next = prev.trimEnd() + `\n- ${new Date().toISOString()} ${line}\n`;
+  writeFileSync(devPaths.planStatusPath, next);
+  assertNoDuplicateFrontmatterKeys(next, devPaths.planStatusPath);
+}
+
+function setPlanPhase(phase, extra = {}) {
+  updateMarkdownFrontmatter(devPaths.planStatusPath, {
+    workPackageId: arch.workPackageId,
+    currentPhase: phase,
+    updatedAt: new Date().toISOString(),
+    ...extra,
+  });
+}
 
 // 4) Approval gate
 const approvalPath = join(runDir, "approval.json");
@@ -127,7 +213,11 @@ if (!approve) {
   writeFileSync(
     approvalPath,
     JSON.stringify(
-      { status: "pending", reason: "pass --approve to continue", planPath: "plan.md" },
+      {
+        status: "pending",
+        reason: "pass --approve to continue",
+        planPath: "plan.md",
+      },
       null,
       2,
     ) + "\n",
@@ -148,6 +238,12 @@ writeFileSync(
     2,
   ) + "\n",
 );
+setPlanPhase(1, {
+  status: "approved",
+  approvedAt: new Date().toISOString(),
+  phasesComplete: false,
+});
+appendPlanLog("plan approved");
 
 function applyChanges() {
   return applyChangeSpec(product, changeSpec.changes);
@@ -175,7 +271,6 @@ function runArbiter() {
 }
 
 function repairOnce(attempt) {
-  // Deterministic repair: re-apply change-spec (edit + create), product-agnostic.
   const results = applyChangeSpec(product, changeSpec.changes);
   writeFileSync(
     join(runDir, `repair-${attempt}.json`),
@@ -192,7 +287,9 @@ function repairOnce(attempt) {
   );
 }
 
-// 5) Implement
+// 5) Implement — advance phases without duplicating frontmatter keys
+setPlanPhase(2, { status: "approved", phasesComplete: false });
+appendPlanLog("implement in_progress");
 let applied;
 try {
   applied = applyChanges();
@@ -204,8 +301,19 @@ writeFileSync(
   join(runDir, "implement.json"),
   JSON.stringify({ applied }, null, 2) + "\n",
 );
+appendPlanLog(`implement done (${applied.length} ops)`);
+
+// Simulate multiple phase transitions (regression for duplicate keys)
+for (let phase = 2; phase <= Math.min(3, totalPhases); phase += 1) {
+  setPlanPhase(phase, { status: "approved", phasesComplete: false });
+}
 
 // 6) Arbiter + repair loop
+setPlanPhase(Math.min(totalPhases - 1, 3), {
+  status: "approved",
+  phasesComplete: false,
+});
+appendPlanLog("final-arbiter running");
 let arb = runArbiter();
 let repairs = 0;
 while (arb.exitCode !== 0 && repairs < maxRepairs) {
@@ -254,32 +362,46 @@ const results = arb.parsed?.results ?? [];
 function step(label) {
   return results.find((r) => r.label === label);
 }
-function executedOk(label, required) {
+
+function checkFromArbiter(label, required) {
   const s = step(label);
-  if (!s) return !required;
-  if (s.skipped) return !required; // skip ≠ executed success when required
-  return !!s.ok;
+  if (!s || s.skipped) {
+    return { status: required ? "failed" : "skipped", required: !!required };
+  }
+  return { status: s.ok ? "passed" : "failed", required: !!required };
 }
 
-const verification = {
-  build: executedOk("build", !!policy.requireBuild),
-  tests: executedOk("test", requireTests),
-  lint: executedOk("lint", !!policy.requireLint),
-  packageCriteria: false,
+const build = checkFromArbiter("build", !!policy.requireBuild);
+const tests = checkFromArbiter("test", requireTests);
+const lint = checkFromArbiter("lint", !!policy.requireLint);
+const parts = [build, tests, lint];
+const packageCriteria = {
+  status: parts.some((c) => c.status === "failed") ||
+    parts.some((c) => c.required && c.status !== "passed")
+    ? "failed"
+    : "passed",
+  required: true,
 };
-verification.packageCriteria =
-  verification.build && verification.tests && verification.lint;
 
-if (requireTests && !verification.tests) {
+const verification = { build, tests, lint, packageCriteria };
+
+if (requireTests && tests.status !== "passed") {
   console.error(
     "Developer PASS refused: tests did not execute successfully (requireTests)",
   );
   process.exit(1);
 }
 
+setPlanPhase(totalPhases, {
+  status: "complete",
+  phasesComplete: true,
+});
+appendPlanLog("all phases complete");
+
 const qualityHandoff = {
   contract: "developer.quality.handoff",
   version: "0.1.0",
+  workPackageId: arch.workPackageId,
   mergeRequestRef: `local/${arch.workPackageId}`,
   intention: `Implement ${arch.features.map((f) => f.id).join(", ")} per ${arch.decisionIds.join(", ")}`,
   requirementIds: changeSpec.requirementIds ?? [],
@@ -290,10 +412,70 @@ const qualityHandoff = {
   ),
 };
 
-const outPath =
-  flag("--out") ?? join(runDir, "developer-quality.handoff.json");
+// Schema validation when @praxis/contracts is resolvable (monorepo);
+// otherwise structural checks that packaged plugins can run alone.
+async function validateQualityHandoff(data) {
+  for (const k of ["build", "tests", "lint", "packageCriteria"]) {
+    const c = data.verification?.[k];
+    if (!c || !["passed", "failed", "skipped"].includes(c.status)) {
+      throw new Error(`verification.${k} invalid`);
+    }
+    if (typeof c.required !== "boolean") {
+      throw new Error(`verification.${k}.required must be boolean`);
+    }
+  }
+  if (!data.workPackageId) throw new Error("missing workPackageId");
+  if (data.contract !== "developer.quality.handoff") {
+    throw new Error(`unexpected contract ${data.contract}`);
+  }
+
+  const candidates = [
+    join(here, "../../../packages/contracts/dist/index.js"),
+    join(here, "../../../node_modules/@praxis/contracts/dist/index.js"),
+  ];
+  for (const abs of candidates) {
+    if (!existsSync(abs)) continue;
+    const mod = await import(pathToFileURL(abs).href);
+    mod.parseContract(mod.DeveloperToQualityHandoffSchema, data);
+    return;
+  }
+}
+
+await validateQualityHandoff(qualityHandoff);
+
+const ready = assertDeveloperReadyForQuality({
+  workPackageId: arch.workPackageId,
+  designDir,
+  acceptancePath: devPaths.acceptancePath,
+  planStatusPath: devPaths.planStatusPath,
+  approvalPath,
+  verification,
+  qualityHandoff,
+  validateHandoff: (data) => {
+    // sync structural re-check (async already done)
+    if (data.workPackageId !== arch.workPackageId) {
+      throw new Error("workPackageId mismatch in handoff object");
+    }
+    if (data.verification?.packageCriteria?.status !== "passed") {
+      throw new Error("packageCriteria not passed");
+    }
+  },
+});
+
+if (!ready.ok) {
+  console.error("Developer readiness gate failed — refusing Quality handoff:");
+  for (const b of ready.blockers) console.error(`  - ${b}`);
+  process.exit(1);
+}
+
+const outPath = flag("--out") ?? devPaths.qualityHandoffPath;
 mkdirSync(dirname(outPath), { recursive: true });
 writeFileSync(outPath, JSON.stringify(qualityHandoff, null, 2) + "\n");
+// Keep a copy under developer-run for tooling that looks there
+writeFileSync(
+  join(runDir, "developer-quality.handoff.json"),
+  JSON.stringify(qualityHandoff, null, 2) + "\n",
+);
 
 console.log(
   JSON.stringify(
@@ -301,6 +483,8 @@ console.log(
       ok: true,
       runDir,
       qualityHandoffPath: outPath,
+      acceptancePath: devPaths.acceptancePath,
+      planStatusPath: devPaths.planStatusPath,
       repairs,
       planSteps,
       applied,

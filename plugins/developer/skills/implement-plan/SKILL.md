@@ -42,8 +42,7 @@ Do **not** use on `draft` / `rejected` plans.
    Capture exit codes / summaries into the status log.
 
 5. **On green**  
-   - Mark phase `done` in `plan-status.md` with evidence (command + result).  
-   - Only then advance `currentPhase` to n+1.  
+   - Update `plan-status.md` by **replacing** scalar frontmatter fields (`currentPhase`, phase status) — never append a second `currentPhase:` key.
    - If more phases remain → loop step 2.  
    - If last phase done → hand off to `final-arbiter` (not yet MR).
 

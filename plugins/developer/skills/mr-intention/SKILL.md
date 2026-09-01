@@ -30,19 +30,21 @@ Emit JSON conforming to `DeveloperToQualityHandoffSchema` (`@praxis/contracts`):
 {
   "contract": "developer.quality.handoff",
   "version": "0.1.0",
+  "workPackageId": "<WP-…>",
   "mergeRequestRef": "<!id or URL>",
   "intention": "<one paragraph>",
   "requirementIds": ["…"],
   "decisionIds": ["…"],
   "verification": {
-    "build": true,
-    "tests": true,
-    "lint": true,
-    "packageCriteria": true
+    "build": { "status": "skipped", "required": false },
+    "tests": { "status": "passed", "required": true },
+    "lint": { "status": "skipped", "required": false },
+    "packageCriteria": { "status": "passed", "required": true }
   }
 }
 ```
 
+`status` is one of `passed` | `failed` | `skipped`. Never encode skipped as passed.
 Persist beside the package:
 
 `design/<workPackageId>/dev/quality-handoff.json`

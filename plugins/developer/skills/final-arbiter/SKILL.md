@@ -54,22 +54,26 @@ Capture stdout/stderr and exit code. Non-zero exit → not done.
 
    Prefer the same Dockerized workflow the project uses for logic changes (build/test inside compose if that is the norm).
 
-3. **Map results** into verification object for `developer.quality.handoff`:
+3. **Map results** into structured verification for `developer.quality.handoff`:
 
    ```json
    {
-     "build": true|false,
-     "tests": true|false,
-     "lint": true|false,
-     "packageCriteria": true|false
+     "build": { "status": "passed"|"failed"|"skipped", "required": true|false },
+     "tests": { "status": "passed"|"failed"|"skipped", "required": true|false },
+     "lint": { "status": "passed"|"failed"|"skipped", "required": true|false },
+     "packageCriteria": { "status": "passed"|"failed", "required": true }
    }
    ```
 
-   `packageCriteria`: manually/script-assisted check that plan done-when + slice non-negotiables are evidenced (checklist in arbiter output or companion file). If the script emits JSON, prefer parsing it; else write:
+   - Arbiter `skipped: true` → handoff `status: "skipped"` (never `"passed"`).
+   - Required check that did not execute successfully → refuse Quality handoff.
+   - `packageCriteria` is `passed` only when every required check passed and none failed.
+
+   Persist:
 
    `design/<workPackageId>/dev/arbiter-report.md`
 
-   with one section per criterion and pass/fail.
+   with one section per criterion and pass/fail/skipped.
 
 4. **On any false**  
    Do not open MR. Enter `repair-loop` with arbiter evidence. Re-run this skill after repairs.

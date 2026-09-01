@@ -12,10 +12,15 @@
 import {
   existsSync,
   mkdirSync,
-  readFileSync,
   writeFileSync,
+  readFileSync,
 } from "node:fs";
 import { dirname, join, resolve } from "node:path";
+import {
+  buildAcceptanceJournal,
+  resolveContextSlicePath,
+} from "./lib/acceptance-journal.mjs";
+import { assertNoDuplicateFrontmatterKeys } from "./lib/frontmatter.mjs";
 
 const args = process.argv.slice(2);
 function flag(name) {
@@ -46,23 +51,24 @@ function finish(code) {
   mkdirSync(dirname(outPath), { recursive: true });
   const status = result.blockers.length ? "returned" : "accepted";
   result.status = status;
-  const body = `---
-workPackageId: ${wpId}
-acceptedAt: ${new Date().toISOString()}
-status: ${status}
----
 
-## Applicable decisions
-${status === "accepted" ? "(from handoff decisionIds)" : "n/a — returned"}
+  let arch = {};
+  if (archHandoffPath && existsSync(archHandoffPath)) {
+    try {
+      arch = JSON.parse(readFileSync(archHandoffPath, "utf8"));
+    } catch {
+      /* ignore — blockers already recorded */
+    }
+  }
 
-## Contracts
-## NFR budgets
-## Boundaries (out of slice)
-## Residual opens
-
-## Blockers returned (if any)
-${result.blockers.map((b) => `- ${b}`).join("\n") || "(none)"}
-`;
+  const body = buildAcceptanceJournal({
+    workPackageId: wpId,
+    status,
+    blockers: result.blockers,
+    arch,
+    designDir,
+  });
+  assertNoDuplicateFrontmatterKeys(body, outPath);
   writeFileSync(outPath, body);
   console.log(
     JSON.stringify(
@@ -123,15 +129,8 @@ const designDir = designDirFlag
   ? resolve(designDirFlag)
   : dirname(archHandoffPath);
 
-const sliceCandidates = [
-  join(designDir, "context-slice.md"),
-  // handoff paths are relative to design root; try common layouts
-  join(dirname(designDir), arch.contextSlicePath ?? ""),
-  join(designDir, "..", arch.contextSlicePath ?? ""),
-].filter(Boolean);
-
-const sliceOk = sliceCandidates.some((p) => p && existsSync(p));
-if (!sliceOk && !existsSync(join(designDir, "context-slice.md"))) {
+const slicePath = resolveContextSlicePath(designDir, arch);
+if (!slicePath) {
   fail("missing-artifact: context-slice.md");
 }
 
