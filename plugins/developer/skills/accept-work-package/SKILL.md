@@ -24,15 +24,26 @@ Developer-side intake gate for `architect.developer.handoff`. Make applicable de
 
 ## Steps
 
-1. **Parse handoff**  
-   Validate with `ArchitectToDeveloperHandoffSchema` from `@praxis/contracts`:
+1. **Parse handoff (machine gate first)**  
+
+   Run:
+
+   ```
+   node ${CLAUDE_PLUGIN_ROOT}/tools/accept-work-package.mjs \
+     --arch-handoff design/<workPackageId>/architect-developer.handoff.json \
+     --design-dir design/<workPackageId>
+   ```
+
+   Non-zero exit / `status: returned` → **stop**; return blockers to Architect. Do not invent fields.
+
+   Also validate with `ArchitectToDeveloperHandoffSchema` from `@praxis/contracts`:
    - `contract: "architect.developer.handoff"`
    - `workPackageId`, `designPackagePath`, `contextSlicePath`
    - `decisionIds[]`, `features[]` with `readyForDev`  
-   Schema fail → **stop**; return to Architect with schema errors. Do not invent fields.
+   Schema fail → **stop**; return to Architect with schema errors.
 
 2. **Open artifacts**  
-   Read `designPackagePath/index.md` (or package root) and `contextSlicePath`. Missing either → return package (`missing-artifact`).
+   Read `designPackagePath/index.md` (or package root) and `contextSlicePath`. Confirm `change-spec.json` beside the package. Missing either → return package (`missing-artifact`).
 
 3. **Ready-for-dev gate**  
    - Every feature in `features[]` must have `readyForDev: true` **or** be explicitly listed as out-of-this-delivery with Architect note.  
@@ -40,9 +51,7 @@ Developer-side intake gate for `architect.developer.handoff`. Make applicable de
    - Context slice must include In slice / Out of slice / Non-negotiables sections.
 
 4. **Materialize working view**  
-   Write acceptance journal:
-
-   `design/<workPackageId>/dev/acceptance.md`
+   The accept tool writes `design/<workPackageId>/dev/acceptance.md`. If you refine the journal, keep `status: accepted|returned` accurate:
 
    ```markdown
    ---

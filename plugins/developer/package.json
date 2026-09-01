@@ -5,6 +5,7 @@
   "description": "praxis-developer Claude Code plugin",
   "license": "Apache-2.0",
   "scripts": {
+    "accept-work-package": "node ./tools/accept-work-package.mjs",
     "final-arbiter": "node ./tools/final-arbiter.mjs",
     "run-work-package": "node ./tools/run-work-package.mjs",
     "session-bootstrap": "node ./tools/session-bootstrap.mjs"
