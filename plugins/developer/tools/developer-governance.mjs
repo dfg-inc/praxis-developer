@@ -22,6 +22,8 @@ import {
   locateCodebase,
   locateProjectNotes,
   notesCannotOverrideArchitecture,
+  executeWebResearch,
+  previewRemoteMergeRequest,
   persistExecutionState,
   prepareLocalMergeRequest,
   recordRepairAttempt,
@@ -66,6 +68,12 @@ if (!verb) {
 const pluginRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 try {
+  await main();
+} catch (err) {
+  fail(err instanceof Error ? err.message : String(err));
+}
+
+async function main() {
   if (verb === "research") {
     const productFlag = flag("--product");
     if (!productFlag) fail("--product is required");
@@ -213,8 +221,27 @@ try {
     writeJson(path, loop);
     emit(loop);
   } else if (verb === "mr-prepare") {
-    const raw = loadIn();
+    const raw = flag("--in") ? loadIn() : {};
     emit(prepareLocalMergeRequest({ ...raw, repo: resolve(flag("--repo") ?? raw.repo) }));
+  } else if (verb === "mr-preview-remote") {
+    const raw = flag("--in") ? loadIn() : {};
+    emit(
+      previewRemoteMergeRequest({
+        ...raw,
+        provider: flag("--provider") ?? raw.provider,
+        baseUrl: flag("--base-url") ?? raw.baseUrl,
+        token: flag("--token") ?? raw.token ?? process.env.PRAXIS_GIT_TOKEN,
+        projectPath: flag("--project") ?? raw.projectPath,
+        repo: flag("--repo") ? resolve(flag("--repo")) : raw.repo,
+      }),
+    );
+  } else if (verb === "web-research-execute") {
+    const rec = await executeWebResearch({
+      provider: flag("--provider"),
+      allowLive: flag("--live") === "true",
+      url: flag("--url"),
+    });
+    emit(rec);
   } else if (verb === "stale-branches") {
     emit(
       detectStaleBranches({
@@ -226,6 +253,4 @@ try {
   } else {
     fail(`unknown verb ${verb}`);
   }
-} catch (err) {
-  fail(err instanceof Error ? err.message : String(err));
 }

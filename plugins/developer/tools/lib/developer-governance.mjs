@@ -179,17 +179,164 @@ export function notesCannotOverrideArchitecture(notes, decisionIds = []) {
   return { ok: true, decisionIds, notesAreAdvisory: true };
 }
 
-/** 5.3B — web research record without live network. */
-export function recordWebResearch({ sources = [], findings = [], liveExecuted = false } = {}) {
+/** 5.3B — web research record without fabricated results. */
+export function recordWebResearch({
+  sources = [],
+  findings = [],
+  liveExecuted = false,
+  provider = "none",
+  error,
+} = {}) {
+  if (liveExecuted === true && findings.some((f) => f?.fabricated === true)) {
+    fail("web research refused fabricated findings");
+  }
+  const live = liveExecuted === true;
   return {
     contract: "developer.web-research.advisory",
     version: "0.1.0",
     advisory: true,
-    liveExecuted: liveExecuted === true,
-    pending: liveExecuted ? [] : ["5.3 live web execution"],
+    provider,
+    liveExecuted: live,
+    pending: live ? [] : ["5.3 live web execution"],
     sources,
     findings,
+    error: error ?? null,
     cannotMutate: ["requirements", "canon", "ADR", "platform-contracts"],
+  };
+}
+
+/**
+ * Provider boundary for live web. Never invents search hits.
+ * Without provider + allowLive, returns pending (not a fake result).
+ */
+export async function executeWebResearch(input = {}) {
+  const provider = input.provider ?? process.env.PRAXIS_WEB_SEARCH_PROVIDER ?? "none";
+  const allowLive = input.allowLive === true || process.env.PRAXIS_ALLOW_LIVE_WEB === "1";
+  const timeoutMs = Number(input.timeoutMs ?? 8000);
+  if (!allowLive || provider === "none") {
+    return recordWebResearch({
+      provider,
+      liveExecuted: false,
+      error:
+        provider === "none"
+          ? "no web search provider configured; live execution pending"
+          : "live web not enabled (PRAXIS_ALLOW_LIVE_WEB)",
+    });
+  }
+  const url = input.url;
+  if (!url) {
+    return recordWebResearch({
+      provider,
+      liveExecuted: false,
+      error: "live web requires an explicit source URL (no implicit search)",
+    });
+  }
+  const fetchImpl = input.fetchImpl ?? fetch;
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const res = await fetchImpl(url, { signal: ctrl.signal, method: "GET" });
+    const body = await res.text();
+    return recordWebResearch({
+      provider,
+      liveExecuted: true,
+      sources: [url],
+      findings: [
+        {
+          status: res.status,
+          ok: res.ok,
+          excerpt: String(body).slice(0, 240),
+          fabricated: false,
+        },
+      ],
+    });
+  } catch (err) {
+    const name = err instanceof Error ? err.name : "Error";
+    const message = err instanceof Error ? err.message : String(err);
+    return recordWebResearch({
+      provider,
+      liveExecuted: false,
+      sources: [url],
+      error: name === "AbortError" ? `timeout after ${timeoutMs}ms` : message,
+    });
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+function buildCreateMergeRequestRequest(input) {
+  const provider = input.provider;
+  const base = String(input.baseUrl ?? "").replace(/\/$/, "");
+  if (provider !== "gitlab" && provider !== "github") {
+    fail("provider must be gitlab|github");
+  }
+  if (!base) fail("baseUrl is required");
+  const missingCredentials = !input.token;
+  const url =
+    provider === "gitlab"
+      ? `${base}/api/v4/projects/${encodeURIComponent(input.projectPath)}/merge_requests`
+      : `${base}/repos/${input.projectPath}/pulls`;
+  const body =
+    provider === "gitlab"
+      ? {
+          source_branch: input.sourceBranch,
+          target_branch: input.targetBranch,
+          title: input.title,
+          description: input.description,
+        }
+      : {
+          title: input.title,
+          body: input.description,
+          head: input.sourceBranch,
+          base: input.targetBranch,
+        };
+  const headers = {
+    Accept: "application/json",
+    "Content-Type": "application/json",
+  };
+  if (input.token) {
+    if (provider === "gitlab") headers["PRIVATE-TOKEN"] = input.token;
+    else headers.Authorization = `Bearer ${input.token}`;
+  }
+  return {
+    contract: "developer.merge-request.remote-preview",
+    version: "0.1.0",
+    provider,
+    method: "POST",
+    url,
+    headers,
+    body,
+    dryRun: true,
+    wouldWrite: false,
+    missingCredentials,
+    blockedReason: missingCredentials
+      ? "missing credential — remote write not attempted"
+      : "dry-run: remote write not attempted",
+  };
+}
+
+export function previewRemoteMergeRequest(input) {
+  const local = input.local ?? (input.repo ? prepareLocalMergeRequest(input) : null);
+  const remote = buildCreateMergeRequestRequest({
+    provider: input.provider,
+    baseUrl: input.baseUrl,
+    token: input.token,
+    projectPath: input.projectPath,
+    title: input.title ?? local?.title ?? "untitled",
+    description: [
+      local?.intention ?? input.intention ?? "",
+      `requirements: ${(local?.requirementIds ?? input.requirementIds ?? []).join(", ")}`,
+      `decisions: ${(local?.decisionIds ?? input.decisionIds ?? []).join(", ")}`,
+    ].join("\n"),
+    sourceBranch: local?.branch ?? input.sourceBranch ?? "HEAD",
+    targetBranch: local?.baseBranch ?? input.targetBranch ?? "main",
+  });
+  return {
+    contract: "developer.merge-request.remote-readiness",
+    version: "0.1.0",
+    local,
+    remote,
+    remoteCreated: false,
   };
 }
 

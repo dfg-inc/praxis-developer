@@ -22,6 +22,8 @@ import {
   prepareLocalMergeRequest,
   recordRepairAttempt,
   recordWebResearch,
+  executeWebResearch,
+  previewRemoteMergeRequest,
   runExecutionPhase,
   savePlan,
   snapshotFiles,
@@ -103,6 +105,30 @@ describe("5.3 notes / web", () => {
     expect(rec.liveExecuted).toBe(false);
     expect(rec.pending).toContain("5.3 live web execution");
     expect(rec.cannotMutate).toContain("ADR");
+  });
+
+  it("does not fabricate live web results when provider is missing", async () => {
+    const rec = await executeWebResearch({ allowLive: true, provider: "none" });
+    expect(rec.liveExecuted).toBe(false);
+    expect(rec.findings).toEqual([]);
+    expect(rec.error).toMatch(/provider/);
+  });
+
+  it("records timeout as explicit error, not a fake hit", async () => {
+    const rec = await executeWebResearch({
+      allowLive: true,
+      provider: "url",
+      url: "https://example.invalid/search",
+      timeoutMs: 20,
+      fetchImpl: () =>
+        new Promise((_, reject) => {
+          const err = new Error("aborted");
+          err.name = "AbortError";
+          reject(err);
+        }),
+    });
+    expect(rec.liveExecuted).toBe(false);
+    expect(rec.error).toMatch(/timeout/);
   });
 });
 
@@ -292,6 +318,16 @@ describe("5.15 / 5.17 git", () => {
     expect(mr.changedFiles).toContain("b.txt");
     expect(mr.commits.length).toBeGreaterThan(0);
     expect(mr.remoteCreated).toBe(false);
+    const preview = previewRemoteMergeRequest({
+      local: mr,
+      provider: "gitlab",
+      baseUrl: "https://gitlab.example.com",
+      projectPath: "group/app",
+    });
+    expect(preview.remoteCreated).toBe(false);
+    expect(preview.remote.wouldWrite).toBe(false);
+    expect(preview.remote.missingCredentials).toBe(true);
+    expect(preview.remote.url).toContain("/merge_requests");
   });
 
   it("detects stale merged branches in dry-run", () => {
