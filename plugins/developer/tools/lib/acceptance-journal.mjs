@@ -66,12 +66,13 @@ export function resolveContextSlicePath(designDir, arch) {
  *   workPackageId: string,
  *   status: 'accepted'|'returned',
  *   blockers: string[],
- *   arch: { decisionIds?: string[], contextSlicePath?: string },
+ *   arch: { decisionIds?: string[], contextSlicePath?: string, platformContractIds?: string[] },
  *   designDir: string,
+ *   returnTo?: string,
  * }} input
  */
 export function buildAcceptanceJournal(input) {
-  const { workPackageId, status, blockers, arch, designDir } = input;
+  const { workPackageId, status, blockers, arch, designDir, returnTo } = input;
   const slicePath = resolveContextSlicePath(designDir, arch);
   const slice = slicePath && existsSync(slicePath)
     ? readFileSync(slicePath, "utf8")
@@ -108,6 +109,18 @@ export function buildAcceptanceJournal(input) {
     }
   }
 
+  const contractIds = Array.isArray(arch.platformContractIds) ? arch.platformContractIds : [];
+  let contractsBlock = contractsFromSlice;
+  if (status === "accepted" && contractIds.length) {
+    const extra = contractIds
+      .filter((id) => !String(contractsBlock ?? "").includes(id))
+      .map((id) => `- ${id}`)
+      .join("\n");
+    if (extra) {
+      contractsBlock = `${(contractsBlock ?? "").trim()}\n${extra}`.trim();
+    }
+  }
+
   const decisionIdsFm = decisionIds.length
     ? `[${decisionIds.map((id) => JSON.stringify(id)).join(", ")}]`
     : "[]";
@@ -117,13 +130,15 @@ workPackageId: ${workPackageId}
 acceptedAt: ${new Date().toISOString()}
 decisionIds: ${decisionIdsFm}
 status: ${status}
+returnTo: ${status === "returned" ? returnTo ?? "architect" : "none"}
+planningAllowed: ${status === "accepted"}
 ---
 
 ## Applicable decisions
 ${status === "accepted" ? orNone(decisionsBlock) : "n/a — returned"}
 
 ## Contracts
-${status === "accepted" ? orNone(contractsFromSlice) : "n/a — returned"}
+${status === "accepted" ? orNone(contractsBlock) : "n/a — returned"}
 
 ## NFR budgets
 ${status === "accepted" ? orNone(nfrFromSlice) : "n/a — returned"}

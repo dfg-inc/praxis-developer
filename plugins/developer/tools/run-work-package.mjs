@@ -30,6 +30,7 @@ import {
   assertDeveloperReadyForQuality,
   defaultDevPaths,
 } from "./lib/readiness.mjs";
+import { assertImplementationAllowed } from "./lib/developer-governance.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const arbiter = join(here, "final-arbiter.mjs");
@@ -245,7 +246,21 @@ setPlanPhase(1, {
 });
 appendPlanLog("plan approved");
 
+function loadPersistedPlan() {
+  for (const p of [
+    join(runDir, "plan.json"),
+    join(designDir, "dev", "plan.json"),
+  ]) {
+    if (existsSync(p)) {
+      return JSON.parse(readFileSync(p, "utf8"));
+    }
+  }
+  return null;
+}
+
 function applyChanges() {
+  const persisted = loadPersistedPlan();
+  if (persisted) assertImplementationAllowed(persisted);
   return applyChangeSpec(product, changeSpec.changes);
 }
 

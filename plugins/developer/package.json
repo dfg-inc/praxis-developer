@@ -6,12 +6,17 @@
   "license": "Apache-2.0",
   "scripts": {
     "accept-work-package": "node ./tools/accept-work-package.mjs",
+    "developer-governance": "node ./tools/developer-governance.mjs",
     "final-arbiter": "node ./tools/final-arbiter.mjs",
     "run-work-package": "node ./tools/run-work-package.mjs",
     "request-architecture-deviation": "node ./tools/request-architecture-deviation.mjs",
-    "session-bootstrap": "node ./tools/session-bootstrap.mjs"
+    "session-bootstrap": "node ./tools/session-bootstrap.mjs",
+    "test": "vitest run"
   },
   "dependencies": {
     "@praxis/plugin-sdk": "*"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.4"
   }
 }

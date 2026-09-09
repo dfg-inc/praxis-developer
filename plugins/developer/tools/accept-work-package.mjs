@@ -67,6 +67,7 @@ function finish(code) {
     blockers: result.blockers,
     arch,
     designDir,
+    returnTo: status === "returned" ? "architect" : "none",
   });
   assertNoDuplicateFrontmatterKeys(body, outPath);
   writeFileSync(outPath, body);
@@ -75,6 +76,8 @@ function finish(code) {
       {
         ok: status === "accepted",
         status,
+        returnTo: status === "returned" ? "architect" : null,
+        planningAllowed: status === "accepted",
         blockers: result.blockers,
         acceptancePath: outPath,
         workPackageId: wpId,
@@ -144,6 +147,42 @@ if (!indexOk) {
 const changeSpecPath = join(designDir, "change-spec.json");
 if (!existsSync(changeSpecPath)) {
   fail(`change-spec missing: ${changeSpecPath}`);
+} else {
+  try {
+    readFileSync(changeSpecPath, "utf8");
+  } catch {
+    fail(`referenced artifact not readable: change-spec.json`);
+  }
+}
+
+if (Array.isArray(arch.platformContractIds)) {
+  for (const id of arch.platformContractIds) {
+    const p = join(designDir, "contracts", `${id}.json`);
+    if (!existsSync(p)) {
+      fail(`missing required platform contract: ${id}`);
+      continue;
+    }
+    try {
+      JSON.parse(readFileSync(p, "utf8"));
+    } catch {
+      fail(`referenced artifact not readable: contracts/${id}.json`);
+    }
+  }
+}
+
+if (Array.isArray(arch.referencedArtifacts)) {
+  for (const rel of arch.referencedArtifacts) {
+    const p = resolve(designDir, rel);
+    if (!existsSync(p)) {
+      fail(`referenced artifact not readable: ${rel}`);
+      continue;
+    }
+    try {
+      readFileSync(p);
+    } catch {
+      fail(`referenced artifact not readable: ${rel}`);
+    }
+  }
 }
 
 if (result.blockers.length) finish(1);
