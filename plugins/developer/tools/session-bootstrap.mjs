@@ -1,17 +1,15 @@
 #!/usr/bin/env node
-/** Thin session bootstrap for Developer (SDK consumer — WBS 0.7). */
-import { bootstrapSession, formatSessionBootstrap } from "@praxis/plugin-sdk";
+/** Thin session bootstrap for Developer (SDK consumer — WBS 0.7 / 1.4). */
+import {
+  bootstrapSession,
+  formatSessionBootstrap,
+  parseSessionBootstrapArgs,
+} from "@praxis/plugin-sdk";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const args = process.argv.slice(2);
-function flag(name) {
-  const i = args.indexOf(name);
-  return i >= 0 ? args[i + 1] : undefined;
-}
-
-const repoRoot = flag("--repo") ?? process.cwd();
+const parsed = parseSessionBootstrapArgs(process.argv.slice(2));
 const pkg = JSON.parse(
   readFileSync(
     join(dirname(fileURLToPath(import.meta.url)), "../package.json"),
@@ -19,12 +17,12 @@ const pkg = JSON.parse(
   ),
 );
 const boot = bootstrapSession({
-  repoRoot,
+  repoRoot: parsed.repoRoot,
   role: "developer",
-  stage: flag("--stage") ?? "implement",
+  stage: parsed.stage ?? "implement",
   pluginName: "praxis-developer",
   pluginVersion: pkg.version,
-  latestVersion: flag("--latest"),
+  latestVersion: parsed.latest,
 });
 console.log(formatSessionBootstrap(boot));
 if (boot.version && !boot.version.continueAllowed) process.exit(1);

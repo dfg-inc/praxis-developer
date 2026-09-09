@@ -12,7 +12,7 @@ Load `.project` defaults and the applicable knowledge slice for **role `develope
 1. From the product repo root (directory with or without `.project`), run:
 
    ```
-   node <plugin-dir>/tools/session-bootstrap.mjs --repo .
+   node <plugin-dir>/tools/session-bootstrap.mjs [repo-root]
    ```
 
    Packaged plugins ship `tools/session-bootstrap.cjs` (same entry).
