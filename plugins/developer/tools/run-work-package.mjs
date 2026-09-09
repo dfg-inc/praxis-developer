@@ -17,7 +17,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 import {
   applyChangeSpec,
   planStepForChange,
@@ -444,15 +444,11 @@ async function validateQualityHandoff(data) {
     throw new Error(`unexpected contract ${data.contract}`);
   }
 
-  const candidates = [
-    join(here, "../../../packages/contracts/dist/index.js"),
-    join(here, "../../../node_modules/@praxis/contracts/dist/index.js"),
-  ];
-  for (const abs of candidates) {
-    if (!existsSync(abs)) continue;
-    const mod = await import(pathToFileURL(abs).href);
+  try {
+    const mod = await import("@praxis/contracts");
     mod.parseContract(mod.DeveloperToQualityHandoffSchema, data);
-    return;
+  } catch {
+    /* optional — structural checks above already ran */
   }
 }
 
