@@ -1,7 +1,7 @@
 {
   "name": "praxis-developer",
   "version": "0.1.0-alpha.26",
-  "description": "Praxis Developer plugin: research, plan, implement, TDD, arbiter, MR intention.",
+  "description": "Praxis Developer — claim a Work Package, implement the change-spec, verify with tests, and hand to QA.",
   "author": {
     "name": "dfuture-co"
   },
