@@ -5,11 +5,18 @@ description: Implement a Work Package (local WP- id or Jira key) end to end.
 
 # Implement Work Package
 
-Claude UI / Cowork is the human interface when a repository is mounted. Do not ask the user for Make or Praxis CLI commands.
+Claude UI / Cowork is the human interface when a repository is mounted. Do not ask the user for Make, Praxis CLI, or `launchctl`.
 
-## Capability detection
+## Shared Praxis Runtime
 
-Call `praxis_doctor`. If it cannot run: `LOCAL_RUNTIME_UNAVAILABLE`. If the repo is missing: `REPOSITORY_UNAVAILABLE`. Do not fake source edits when the filesystem is unavailable. Never paste tokens into chat.
+This Skill uses tools from the **Praxis Runtime** Desktop Extension.
+
+1. If `praxis_doctor` is not available: stop with `PRAXIS_RUNTIME_UNAVAILABLE`. Tell the user to install or enable the Praxis Runtime Desktop Extension. Do not instruct them to run CLI or edit config files.
+2. Call `praxis_doctor`.
+3. If Jira is not configured: stop with `JIRA_CONFIG_UNAVAILABLE`. Open Claude Desktop → Settings → Extensions → Praxis Runtime → Settings. Never request the token in chat.
+4. If `.project` is missing: `praxis_project_init_preview`, wait for approval, then `praxis_project_init_apply` with `confirmation=YES`.
+
+Allowed tools: common/Jira/project + WP/Developer tools. Do not start Quality.
 
 ## Flow
 
@@ -22,6 +29,6 @@ Call `praxis_doctor`. If it cannot run: `LOCAL_RUNTIME_UNAVAILABLE`. If the repo
 7. Run project tests (`npm test` or `.project` quality.test) only when local execution is available
 8. Record evidence, then `praxis_developer_complete` with `confirmation=YES`
 
-Do not start Quality. Do not claim and complete in one autonomous unapproved sequence.
+Do not claim and complete in one autonomous unapproved sequence.
 
 Examples: «Возьми WP-20260914-002 и реализуй его.» / “Take WP-20260914-002 and implement it fully.”

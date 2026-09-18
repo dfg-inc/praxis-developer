@@ -2,7 +2,7 @@
 
 Claude plugin for the Developer role.
 
-**Claude UI / Cowork:** import `claude-plugins/praxis-developer.zip`. Requires repository access. Use MCP tools (`praxis_developer_status`, `praxis_developer_claim`, …), not the CLI.
+**Claude UI / Cowork:** install Praxis Runtime, then import `claude-plugins/praxis-developer.zip`. Requires repository access. Use shared Runtime MCP tools (`praxis_developer_status`, `praxis_developer_claim`, …), not the CLI.
 
 **Claude Code / CI:** `praxis developer --help` or `make developer`.
 
