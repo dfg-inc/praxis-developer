@@ -19,4 +19,4 @@ Show current status with `praxis_developer_status`. Wait for human approval.
 
 Then `praxis_developer_claim` with `workPackage` and `confirmation=YES`.
 
-Resolves local WP id or Jira key. Never steal a claim. Force-release requires `praxis_developer_release` with `confirmation=YES`. Do not claim without approval.
+Resolves local WP id or Jira key. Discovers available Jira transitions for the issue and posts only a numeric transition id; localized workflow names are supported. Never steal a claim. Force-release requires `praxis_developer_release` with `confirmation=YES`. Do not claim without approval.

@@ -20,4 +20,4 @@ Call MCP:
 - `praxis_doctor`
 - `praxis_developer_status` with `workPackage`
 
-Read-only. No confirmation.
+Read-only. No confirmation. Status may include `jiraStatus` and `availableTransitions` (id, name, target status) for diagnosing claim mapping. Do not expose credentials.
