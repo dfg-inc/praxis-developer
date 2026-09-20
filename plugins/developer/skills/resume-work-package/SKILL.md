@@ -17,4 +17,6 @@ Allowed tools: common/Jira/project + WP/Developer. Do not start Quality.
 
 Call `praxis_doctor` then `praxis_developer_status`. Continue claim → plan → implement → complete.
 
-Writes require human confirmation (`praxis_developer_claim` / `praxis_developer_complete` with `confirmation=YES`). Do not immediately apply after showing the plan.
+If Jira is already Done but local evidence/handoff is missing, call `praxis_developer_complete_recovery_preview`, show the proposed restore, and wait for a separate human approval before `praxis_developer_complete_recovery_apply`.
+
+Writes require human confirmation (`praxis_developer_claim` / `praxis_developer_complete` / `praxis_developer_complete_recovery_apply` with `confirmation=YES`). Do not immediately apply after showing the plan. Developer complete does not mark Jira Done.

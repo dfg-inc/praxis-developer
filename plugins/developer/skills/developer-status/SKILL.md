@@ -20,4 +20,4 @@ Call MCP:
 - `praxis_doctor`
 - `praxis_developer_status` with `workPackage`
 
-Read-only. No confirmation. Status may include `jiraStatus` and `availableTransitions` (id, name, target status) for diagnosing claim mapping. Do not expose credentials.
+Read-only. No confirmation. Status reports persisted `claim.state` separately from `implementationState` and `readyForQuality`. It may include `jiraStatus`, `availableTransitions`, completion evidence paths, and Quality handoff presence. Do not expose credentials. Do not treat Jira Done as Developer-complete success.

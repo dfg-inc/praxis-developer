@@ -27,7 +27,8 @@ Allowed tools: common/Jira/project + WP/Developer tools. Do not start Quality.
 5. `praxis_developer_claim` with `confirmation=YES` only after approval
 6. Implement the real product change using workspace filesystem tools (Architect scratch tests do not count)
 7. Run project tests (`npm test` or `.project` quality.test) only when local execution is available
-8. Record evidence, then `praxis_developer_complete` with `confirmation=YES`
+8. Run project tests (`npm test` or `.project` quality.test) only when local execution is available
+9. `praxis_developer_complete` with `confirmation=YES` after showing the verification plan. This writes completion evidence and a Developer→Quality handoff. **It must not mark Jira Done and must not start Quality.** Jira stays In Progress (`В работе`) until Quality approval.
 
 Do not claim and complete in one autonomous unapproved sequence.
 
