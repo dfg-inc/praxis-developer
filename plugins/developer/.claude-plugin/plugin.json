@@ -1,6 +1,6 @@
 {
   "name": "praxis-developer",
-  "version": "0.1.0-alpha.40",
+  "version": "0.1.0-alpha.41",
   "description": "Praxis Developer — claim a Work Package, implement the change-spec, verify with tests, and hand to QA.",
   "author": {
     "name": "dfuture-co"
