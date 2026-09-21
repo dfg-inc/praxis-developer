@@ -1,6 +1,6 @@
 {
   "name": "praxis-developer",
-  "version": "0.1.0-alpha.42",
+  "version": "0.1.0-alpha.43",
   "description": "Praxis Developer — claim a Work Package, implement, verify with tests, hand to QA, and deliver through Git without terminal commands.",
   "author": {
     "name": "dfuture-co"
