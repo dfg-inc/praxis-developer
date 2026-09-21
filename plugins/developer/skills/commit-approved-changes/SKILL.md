@@ -19,4 +19,4 @@ Call MCP:
 - Wait for human approval
 - `praxis_developer_git_commit` with `confirmation=YES` and the matching `previewFingerprint`
 
-Do not `git add -A`. Only the allowlist (Quality snapshot files, typically `src/counter.js` and `src/counter.test.js`) is staged. No push, no PR, no Jira write, no `reset --hard`, no `git clean`, no amend, no force.
+Do not `git add -A`. Only the allowlist (Quality snapshot files, typically `src/counter.js` and `src/counter.test.js`) is staged. After the commit, hashes are read back from the Git object and compared to the Quality snapshot. No push, no PR, no Jira write, no `reset --hard`, no `git clean`, no amend, no force. If verification fails, the result is `partial` — do not hide that as success. Retry of an already-created commit is a no-op.

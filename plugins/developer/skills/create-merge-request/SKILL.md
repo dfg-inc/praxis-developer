@@ -18,6 +18,8 @@ GitHub Pull Requests need `github_token` in Praxis Runtime settings (PAT with re
 Call MCP:
 
 - `praxis_developer_git_delivery_status`
-- `praxis_developer_git_merge_request` with `confirmation=YES` after the user approves
+- `praxis_developer_git_merge_request_preview` — PR **base** is the published remote default branch (`main`), never local `master`
+- Wait for human approval
+- `praxis_developer_git_merge_request` with `confirmation=YES` and the matching `previewFingerprint`
 
-If a PR/MR already exists for the branch, reuse it. Do not merge. Do not claim GitHub Actions passed unless the tool reports `ciStatus=success`. Do not write Jira here (`praxis_developer_git_link_jira_*` is a separate gate).
+If a PR/MR already exists for the branch, reuse it. Do not merge. Do not claim GitHub Actions passed unless the tool reports `ciStatus=success`. If no workflow exists, expect `ciStatus=not_configured` (not PASS). Do not write Jira here (`praxis_developer_git_link_jira_*` is a separate gate). Retry after a lost response must not open a second PR.

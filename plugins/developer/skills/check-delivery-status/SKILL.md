@@ -18,4 +18,4 @@ Call MCP:
 - `praxis_doctor`
 - `praxis_developer_git_delivery_status` with `workPackage`
 
-Read-only. Show lifecycle (`committed`, `baseline-published`, `pushed`, `awaiting-review`), commit SHA only if it was really created, PR/MR URL only if it exists, and CI status without fabricating PASS. Merge is out of scope.
+Read-only. Show lifecycle (`not-started`, `baseline-published`, `committed`, `pushed`, `awaiting-review`, `partial`), commit SHA only if it was really created, PR/MR URL only if it exists, PR base/head, and CI status without fabricating PASS (`not_configured` when GitHub Actions is absent). Merge is out of scope. On `partial`, show recovery instructions; do not invent a second commit or PR.

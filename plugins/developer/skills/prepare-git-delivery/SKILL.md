@@ -18,6 +18,6 @@ Call MCP:
 - `praxis_doctor`
 - `praxis_developer_git_preview` with `workPackage`
 
-Show selected files, SHA256 hashes (recomputed), Quality Review binding, commit message, proposed branch, warnings (for example dirty `package.json`), and `previewFingerprint`.
+Show selected files, SHA256 hashes (recomputed from disk against `design/<WP>/qa/quality-review.json`), Quality Review binding, commit message, proposed branch, target remote branch (`main` after a GitHub empty-repo baseline), warnings (for example dirty `package.json`, untracked `.npmrc`), and `previewFingerprint`.
 
-Read-only. Do not call commit in the same turn. If hashes do not match the Quality snapshot, stop: a new Quality Review is required. Do not start Quality Review or Quality Apply from this Skill.
+Read-only. Do not call commit in the same turn. If hashes do not match the Quality snapshot, stop: a new Quality Review is required. Do not start Quality Review or Quality Apply from this Skill. Do not include `.praxis-*`, `.npmrc`, `.project`, `package.json`, or BA artifacts unless the user explicitly allowlists them with a separate confirmation.
