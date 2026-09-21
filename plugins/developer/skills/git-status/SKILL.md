@@ -20,4 +20,4 @@ Call MCP:
 - `praxis_doctor`
 - `praxis_developer_git_status` with `workPackage`
 
-Read-only. No confirmation. Show branch, HEAD, remotes (redacted), provider, identity, staging safety, and whether a remote is missing. If `remoteConfigured=false`, do **not** invent GitHub or GitLab hosts from Jira, other checkouts, or chat history. Never print `github_token`, `gitlab_token`, or credential-bearing URLs.
+Read-only. No confirmation. Show branch, HEAD, remotes (redacted), provider, identity, staging safety, and whether a remote is missing. If GitHub API reports `remote.empty=true`, top-level `remoteEmpty` and `baselineRequired` must also be true. If the API is unavailable, leave `remoteEmpty` unknown (`null`) — never invent `false`. If `remoteConfigured=false`, do **not** invent GitHub or GitLab hosts from Jira, other checkouts, or chat history. Never print `github_token`, `gitlab_token`, or credential-bearing URLs.
