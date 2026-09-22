@@ -16,10 +16,11 @@ Includes Developer governance + Git Delivery compatibility checks inside accepta
 
 ## CI
 
-Jobs: `validate`, `governance`, `pack_zip`.
+Jobs: `validate`, `governance`, `pack_zip`; on tag `v$version` → `publish_release`.
 
 **Required GitLab setting:** allow inbound job tokens from `praxis-developer` on `praxis-ba` and `praxis-architect`.
 
 ## Release
 
-Artifact `praxis-developer.zip`. Independent versioning.
+Install from [GitLab Releases](https://gl.jetru.by/engineering/ai-tooling/praxis-developer/-/releases): `praxis-developer.zip` + `release-meta.json`. Independent versioning via tags.
+
