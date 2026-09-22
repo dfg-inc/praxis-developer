@@ -20,6 +20,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { buildAllPluginArtifacts } from "./package-plugins.mjs";
+import { resolvePackablePlugin } from "./resolve-staged-plugin.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const mirror = join(root, "dist/release-mirror");
@@ -31,22 +32,8 @@ const pending = [
 ];
 
 function stagedPlugin(id) {
-  const envKey = {
-    ba: "PRAXIS_BA_ROOT",
-    architect: "PRAXIS_ARCHITECT_ROOT",
-    developer: "PRAXIS_DEVELOPER_ROOT",
-  }[id];
-  const candidates = [
-    join(root, "dist/release-mirror/plugins", id),
-    join(root, "plugins", id),
-  ];
-  if (process.env[envKey]) {
-    candidates.unshift(
-      join(process.env[envKey], "dist/release-mirror/plugins", id),
-      join(process.env[envKey], "plugins", id),
-    );
-  }
-  return candidates.find((p) => existsSync(p));
+  // Pack-safe mirrors only — never raw plugins/ with file:vendor deps.
+  return resolvePackablePlugin(id, root, { stageMissing: true });
 }
 
 function fail(msg) {

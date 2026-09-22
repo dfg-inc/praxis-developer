@@ -1,0 +1,77 @@
+# praxis-developer — GitLab CI
+# Required: job-token allowlist on praxis-ba and praxis-architect for this project.
+stages:
+  - verify
+  - package
+
+default:
+  image: node:22-bookworm
+  interruptible: true
+  cache:
+    key:
+      files: [package-lock.json]
+    paths: [.npm/]
+  before_script:
+    - node -v && npm -v
+    - npm ci --cache .npm --prefer-offline
+
+variables:
+  npm_config_cache: "$CI_PROJECT_DIR/.npm"
+  PRAXIS_DEVELOPER_ROOT: "$CI_PROJECT_DIR"
+  PRAXIS_BA_ROOT: "$CI_PROJECT_DIR/../praxis-ba"
+  PRAXIS_ARCHITECT_ROOT: "$CI_PROJECT_DIR/../praxis-architect"
+
+validate:
+  stage: verify
+  script:
+    - npm run build
+    - npm run test
+    - npm run plugins:validate
+    - npm run check:skill-cli
+    - npm run check:boundaries
+
+governance:
+  stage: verify
+  script:
+    - |
+      set -euo pipefail
+      HOST="${CI_SERVER_HOST}"
+      NS="${CI_PROJECT_NAMESPACE}"
+      ensure_sibling() {
+        local name="$1" dir="$2"
+        if [ ! -f "$dir/package.json" ]; then
+          echo "Cloning ${NS}/${name}@master (token redacted)"
+          git clone --depth 1 --branch master \
+            "https://gitlab-ci-token:${CI_JOB_TOKEN}@${HOST}/${NS}/${name}.git" "$dir"
+        fi
+        if [ ! -d "$dir/node_modules" ]; then
+          (cd "$dir" && npm ci --cache "$CI_PROJECT_DIR/.npm" --prefer-offline)
+        fi
+        (cd "$dir" && npm run build)
+      }
+      ensure_sibling praxis-ba "$PRAXIS_BA_ROOT"
+      ensure_sibling praxis-architect "$PRAXIS_ARCHITECT_ROOT"
+    - npm run accept:developer-governance
+
+pack_zip:
+  stage: package
+  needs: [validate, governance]
+  script:
+    - npm run build
+    - npm run pack:zip
+    - npm run accept:claude-plugins
+    - |
+      python3 - <<'PY'
+      import hashlib, json, pathlib
+      paths = list(pathlib.Path("dist/claude-plugins").rglob("praxis-developer.zip"))
+      assert paths, "praxis-developer.zip missing"
+      rows = [{"file": str(p), "sha256": hashlib.sha256(p.read_bytes()).hexdigest(), "bytes": p.stat().st_size} for p in paths]
+      pathlib.Path("dist/zip-checksums.json").write_text(json.dumps(rows, indent=2) + "\n")
+      print(rows)
+      PY
+  artifacts:
+    paths:
+      - dist/claude-plugins/
+      - dist/zip-checksums.json
+    expire_in: 30 days
+    name: "praxis-developer-zip-$CI_COMMIT_SHORT_SHA"

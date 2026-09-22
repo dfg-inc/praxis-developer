@@ -1,14 +1,25 @@
 # praxis-developer
 
-Independent Praxis developer Skills plugin. Distribution artifact: `praxis-developer.zip`.
+Independent Praxis Developer Skills plugin. Distribution: **`praxis-developer.zip`**.
 
-Requires the shared Praxis Runtime Desktop Extension (`praxis-runtime.mcpb`). This repo does not ship an MCPB.
-
-This plugin must not depend on another role plugin. Shared libraries come from praxis-core at `0.1.0-alpha.44`.
-
-User-facing docs live in praxis-docs (`docs/user/plugins/developer.md`).
+## Development
 
 ```bash
-npm install
+npm ci
+export PRAXIS_BA_ROOT=/path/to/praxis-ba
+export PRAXIS_ARCHITECT_ROOT=/path/to/praxis-architect
+export PRAXIS_DEVELOPER_ROOT=$PWD
 npm run verify
 ```
+
+Includes Developer governance + Git Delivery compatibility checks inside acceptance.
+
+## CI
+
+Jobs: `validate`, `governance`, `pack_zip`.
+
+**Required GitLab setting:** allow inbound job tokens from `praxis-developer` on `praxis-ba` and `praxis-architect`.
+
+## Release
+
+Artifact `praxis-developer.zip`. Independent versioning.
