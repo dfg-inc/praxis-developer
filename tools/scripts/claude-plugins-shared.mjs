@@ -1,34 +1,6 @@
 import { join } from "node:path";
 
 export const PLUGINS = [
-{
-    id: "praxis-ba",
-    title: "Praxis BA",
-    src: "plugins/ba",
-    role: "ba",
-    requiredSkills: [
-      "jira-epic-analysis",
-      "resume-ba-work",
-      "ba-jira-status",
-    ],
-    helpCommands: [["ba", "--help"], ["ba", "preview", "--help"]],
-  },
-  {
-    id: "praxis-architect",
-    title: "Praxis Architect",
-    src: "plugins/architect",
-    role: "architect",
-    requiredSkills: [
-      "plan-jira-epic",
-      "resume-architecture",
-      "materialize-work-package",
-      "architecture-status",
-    ],
-    helpCommands: [
-      ["architect", "--help"],
-      ["architect", "preview", "--help"],
-    ],
-  },
   {
     id: "praxis-developer",
     title: "Praxis Developer",
@@ -47,8 +19,8 @@ export const PLUGINS = [
       "check-delivery-status",
     ],
     helpCommands: [["developer", "--help"]],
-  }
-]
+  },
+];
 
 export const PLUGIN_ZIP_FILES = PLUGINS.map((p) => `${p.id}.zip`);
 export const MANIFEST_CONTRACT = "praxis.claude-plugins.manifest";
