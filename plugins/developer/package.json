@@ -14,7 +14,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@praxis/plugin-sdk": "*"
+    "@praxis/plugin-sdk": "file:../../vendor/praxis-plugin-sdk-0.1.0-alpha.44.tgz"
   },
   "devDependencies": {
     "vitest": "^3.2.4"
