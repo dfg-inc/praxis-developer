@@ -1,12 +1,16 @@
-name: Praxis CI
+name: Praxis Developer CI
 
 on:
   push:
     branches: [main, master]
   pull_request:
 
+concurrency:
+  group: developer-ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  verify:
+  validate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -14,5 +18,72 @@ jobs:
         with:
           node-version: "22"
           cache: npm
-      - run: npm install
-      - run: npm run verify
+      - run: npm ci
+      - run: npm run build
+      - run: npm run test
+      - run: npm run plugins:validate
+      - run: npm run check:skill-cli
+      - run: npm run check:boundaries
+
+  governance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Checkout praxis-ba
+        uses: actions/checkout@v4
+        with:
+          repository: dfg-inc/praxis-ba
+          path: siblings/praxis-ba
+          ref: master
+      - name: Checkout praxis-architect
+        uses: actions/checkout@v4
+        with:
+          repository: dfg-inc/praxis-architect
+          path: siblings/praxis-architect
+          ref: master
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - name: Prepare siblings
+        run: |
+          set -euo pipefail
+          (cd siblings/praxis-ba && npm ci && npm run build)
+          (cd siblings/praxis-architect && npm ci && npm run build)
+      - name: Developer governance
+        env:
+          PRAXIS_DEVELOPER_ROOT: ${{ github.workspace }}
+          PRAXIS_BA_ROOT: ${{ github.workspace }}/siblings/praxis-ba
+          PRAXIS_ARCHITECT_ROOT: ${{ github.workspace }}/siblings/praxis-architect
+        run: npm run accept:developer-governance
+
+  pack_zip:
+    runs-on: ubuntu-latest
+    needs: [validate, governance]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run pack:zip
+      - run: npm run accept:claude-plugins
+      - name: Checksums
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, pathlib
+          paths = list(pathlib.Path("dist/claude-plugins").rglob("praxis-developer.zip"))
+          assert paths, "praxis-developer.zip missing"
+          rows = [{"file": str(p), "sha256": hashlib.sha256(p.read_bytes()).hexdigest(), "bytes": p.stat().st_size} for p in paths]
+          pathlib.Path("dist/zip-checksums.json").write_text(json.dumps(rows, indent=2) + "\n")
+          print(rows)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: praxis-developer-zip
+          path: |
+            dist/claude-plugins/
+            dist/zip-checksums.json
