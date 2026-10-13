@@ -8,8 +8,8 @@
     {
       "name": "praxis-developer",
       "source": "./",
-      "description": "Praxis Developer \u2014 plans, TDD, repair loop, MR intention.",
-      "version": "0.1.0-alpha.45"
+      "description": "Praxis Developer — plans, TDD, repair loop, MR intention.",
+      "version": "0.1.0-alpha.47"
     }
   ]
 }
