@@ -17,6 +17,7 @@ export const PLUGINS = [
       "publish-branch",
       "create-merge-request",
       "check-delivery-status",
+      "local-workflow",
     ],
     helpCommands: [["developer", "--help"]],
   },

@@ -40,6 +40,7 @@ const UI_SKILLS = {
     "publish-branch",
     "create-merge-request",
     "check-delivery-status",
+    "local-workflow",
   ],
   quality: ["review-work-package", "resume-qa", "quality-status", "verify-work-package"],
 };

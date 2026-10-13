@@ -14,7 +14,7 @@ description: Implement approved requirements across services or repositories wit
 
 ## Behavior
 
-Decompose work per service. Link every change to requirement ids. One finished service does not complete the feature.
+Decompose work per service. For each service, `record-implementation` with the source path, requirement ids, and contract reference. One finished service does not complete the feature.
 
 If architecture or business rules conflict, hand back with `praxis_workflow_preview` (`targetRole=architect` or `targetRole=ba`) and wait for approval before `praxis_workflow_apply`.
 
