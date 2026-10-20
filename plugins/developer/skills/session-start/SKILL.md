@@ -5,7 +5,7 @@ description: Use at the start of a Developer session — runs session bootstrap 
 
 # Session start
 
-Load `.project` defaults, the applicable knowledge rules for role `developer`, stage `implement` (override with `stage`; not for quality), and the Work Items of this repository. Does not mutate product code.
+Load `.project` defaults, the applicable knowledge rules for role `developer`, stage `implement` (override with `stage`), and the Work Items of this repository. Does not mutate product code.
 
 ## What happens
 
