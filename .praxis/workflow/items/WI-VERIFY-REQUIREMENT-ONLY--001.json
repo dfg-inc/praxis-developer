@@ -1,0 +1,247 @@
+{
+  "contract": "praxis.workflow.state",
+  "version": "1.0.0",
+  "workflowId": "WF-WI-VERIFY-REQUIREMENT-ONLY--001",
+  "projectId": "praxis-runtime",
+  "workItem": {
+    "id": "WI-VERIFY-REQUIREMENT-ONLY--001",
+    "projectId": "praxis-runtime",
+    "title": "Verify requirement-only work and report test completeness honestly",
+    "source": "repository",
+    "status": "in_progress",
+    "revision": 2
+  },
+  "requirements": [
+    {
+      "id": "REQ-QRO-001",
+      "statement": "Quality must be able to verify a work item that has requirements but no User Story, from executed checks bound to the requirement's acceptance criteria, with a verdict that never reaches PASS unless every acceptance criterion has a passing executed scenario.",
+      "revision": 1,
+      "status": "proposed",
+      "acceptanceCriteria": [
+        {
+          "id": "REQ-QRO-001-AC-01",
+          "requirementId": "REQ-QRO-001",
+          "statement": "verify-stories on a work item with no Stories runs the project checks that name a requirementId and records coverage without a storyId.",
+          "revision": 1
+        },
+        {
+          "id": "REQ-QRO-001-AC-02",
+          "requirementId": "REQ-QRO-001",
+          "statement": "An acceptance criterion with no passing executed scenario produces reason ac-not-verified:<criterionId> and caps the requirement verdict at PASS_WITH_RISKS.",
+          "revision": 1
+        },
+        {
+          "id": "REQ-QRO-001-AC-03",
+          "requirementId": "REQ-QRO-001",
+          "statement": "Every acceptance criterion covered by a passing scenario and no failing scenario yields PASS for a requirement-only item, since there is no Story to confirm.",
+          "revision": 1
+        },
+        {
+          "id": "REQ-QRO-001-AC-04",
+          "requirementId": "REQ-QRO-001",
+          "statement": "A failing scenario yields FAIL and a Developer finding.",
+          "revision": 1
+        },
+        {
+          "id": "REQ-QRO-001-AC-05",
+          "requirementId": "REQ-QRO-001",
+          "statement": "With neither Stories nor checks, verification reports missing evidence and does not pass.",
+          "revision": 1
+        },
+        {
+          "id": "REQ-QRO-001-AC-06",
+          "requirementId": "REQ-QRO-001",
+          "statement": "verify-stories no longer writes any file at preview time.",
+          "revision": 1
+        }
+      ],
+      "serviceIds": [],
+      "assumptionIds": []
+    },
+    {
+      "id": "REQ-TCG-001",
+      "statement": "A green test run must mean everything that is supposed to run did run: tests that are excluded, skipped or silently not collected must be explicit and justified, and a test must not pass by returning early when its precondition is missing.",
+      "revision": 1,
+      "status": "proposed",
+      "acceptanceCriteria": [
+        {
+          "id": "REQ-TCG-001-AC-01",
+          "requirementId": "REQ-TCG-001",
+          "statement": "A check script fails when a workspace has test files but no test script, or a test script is missing where --if-present would silently skip it.",
+          "revision": 1
+        },
+        {
+          "id": "REQ-TCG-001-AC-02",
+          "requirementId": "REQ-TCG-001",
+          "statement": "A check script fails when a test script excludes a test file or a test uses skip/todo without an entry and reason in an allowlist file.",
+          "revision": 1
+        },
+        {
+          "id": "REQ-TCG-001-AC-03",
+          "requirementId": "REQ-TCG-001",
+          "statement": "A check script fails when a test returns early on a missing directory or file instead of asserting or being explicitly skipped.",
+          "revision": 1
+        },
+        {
+          "id": "REQ-TCG-001-AC-04",
+          "requirementId": "REQ-TCG-001",
+          "statement": "Every allowlist entry that no longer matches anything fails the check, so exclusions cannot go stale.",
+          "revision": 1
+        },
+        {
+          "id": "REQ-TCG-001-AC-05",
+          "requirementId": "REQ-TCG-001",
+          "statement": "The check runs as part of the repository verify flow and reports each finding with file and reason.",
+          "revision": 1
+        },
+        {
+          "id": "REQ-TCG-001-AC-06",
+          "requirementId": "REQ-TCG-001",
+          "statement": "The existing exclusion of quality-ensure.test.ts is either removed or justified in the allowlist.",
+          "revision": 1
+        }
+      ],
+      "serviceIds": [],
+      "assumptionIds": []
+    }
+  ],
+  "services": [],
+  "handoffs": [
+    {
+      "contract": "praxis.role.handoff",
+      "version": "1.0.0",
+      "workflowId": "WF-WI-VERIFY-REQUIREMENT-ONLY--001",
+      "workItemId": "WI-VERIFY-REQUIREMENT-ONLY--001",
+      "handoffId": "HO-1",
+      "sourceRole": "ba",
+      "targetRole": "architect",
+      "serviceIds": [],
+      "requirementIds": [
+        "REQ-QRO-001",
+        "REQ-TCG-001"
+      ],
+      "acceptanceCriterionIds": [
+        "REQ-QRO-001-AC-01",
+        "REQ-QRO-001-AC-02",
+        "REQ-QRO-001-AC-03",
+        "REQ-QRO-001-AC-04",
+        "REQ-QRO-001-AC-05",
+        "REQ-QRO-001-AC-06",
+        "REQ-TCG-001-AC-01",
+        "REQ-TCG-001-AC-02",
+        "REQ-TCG-001-AC-03",
+        "REQ-TCG-001-AC-04",
+        "REQ-TCG-001-AC-05",
+        "REQ-TCG-001-AC-06"
+      ],
+      "storyIds": [],
+      "artifactRefs": [],
+      "decisions": [],
+      "assumptions": [],
+      "openQuestions": [
+        "Is an acceptance criterion with no bound check a risk or a failure? Proposed: risk (ac-not-verified), because absence of a check is not evidence of failure."
+      ],
+      "risks": [],
+      "blockers": [],
+      "decisionRecords": [],
+      "resolved": [],
+      "nextActions": [],
+      "readiness": "ready",
+      "evidenceRefs": [],
+      "revision": 1,
+      "fingerprint": "sha256:5afab95c8d0e67114d644abe2d2d7f27ebcd65a898023562fbe485b5455d435a"
+    },
+    {
+      "contract": "praxis.role.handoff",
+      "version": "1.0.0",
+      "workflowId": "WF-WI-VERIFY-REQUIREMENT-ONLY--001",
+      "workItemId": "WI-VERIFY-REQUIREMENT-ONLY--001",
+      "handoffId": "HO-2",
+      "sourceRole": "architect",
+      "targetRole": "developer",
+      "serviceIds": [],
+      "requirementIds": [
+        "REQ-QRO-001",
+        "REQ-TCG-001"
+      ],
+      "acceptanceCriterionIds": [
+        "REQ-QRO-001-AC-01",
+        "REQ-QRO-001-AC-02",
+        "REQ-QRO-001-AC-03",
+        "REQ-QRO-001-AC-04",
+        "REQ-QRO-001-AC-05",
+        "REQ-QRO-001-AC-06",
+        "REQ-TCG-001-AC-01",
+        "REQ-TCG-001-AC-02",
+        "REQ-TCG-001-AC-03",
+        "REQ-TCG-001-AC-04",
+        "REQ-TCG-001-AC-05",
+        "REQ-TCG-001-AC-06"
+      ],
+      "storyIds": [],
+      "artifactRefs": [],
+      "decisions": [
+        "DEC-QRO-001"
+      ],
+      "assumptions": [],
+      "openQuestions": [],
+      "risks": [],
+      "blockers": [],
+      "decisionRecords": [],
+      "resolved": [],
+      "nextActions": [
+        "Contracts: optional storyId, requirement-only evidence",
+        "Runtime: checks without Story, no preview write",
+        "Completeness guard script, allowlists and wiring in core and runtime"
+      ],
+      "readiness": "ready",
+      "evidenceRefs": [],
+      "revision": 2,
+      "fingerprint": "sha256:eb5e31c73529516be276846effcd40feae7396d8d22ae4c274f9c2ddab49c369"
+    }
+  ],
+  "findings": [],
+  "verdicts": [],
+  "decisions": [
+    {
+      "id": "DEC-QRO-001",
+      "statement": "Requirement-only verification: CoverageEntrySchema.storyId becomes optional. requirementEvidence treats entries without storyId as requirement-level evidence for that requirement. When a requirement has no linked current Story, every acceptance criterion of the requirement must be covered by a PASS scenario naming it via acceptanceCriterionId; uncovered criteria add reason ac-not-verified:<id> and cap at PASS_WITH_RISKS; with all criteria covered and no FAIL the verdict is PASS (nothing to confirm). Linked Stories keep their confirmation rules unchanged. runProjectChecks no longer requires a Story: story fields come from the check when present, and a check naming neither storyId nor requirementId fails the check file as CHECKS_INVALID. buildStoryVerification no longer throws STORY_MISSING when requirements exist; with neither Stories nor requirements it still throws, and with no checks it falls back to the inspection plan whose scenarios are NOT_VERIFIED (never PASS). Remove the preview-time last-verification.json write. Test completeness: new tools/scripts/check-test-completeness.mjs in each repository with tests, driven by test-completeness.allowlist.json {entries:[{kind,path,pattern?,reason}]}, kinds: no-test-script, exclude, skip, early-return. It scans package.json test scripts and test sources, fails on any finding not allowlisted with a non-empty reason and on any allowlist entry that matches nothing. Wired into the repository verify script. quality-ensure.test.ts exclusion: justify or remove after measuring.",
+      "confirmed": true,
+      "revision": 2
+    }
+  ],
+  "openQuestions": [],
+  "risks": [],
+  "blockers": [],
+  "assumptions": [],
+  "implementationUnits": [
+    {
+      "id": "IMPL-QRO-001",
+      "serviceId": "praxis-runtime-mcp",
+      "requirementIds": [
+        "REQ-QRO-001",
+        "REQ-TCG-001"
+      ],
+      "path": "packages/mcp/src/story-engine.ts",
+      "summary": "praxis-core a2ede10: optional coverage storyId; requirementEvidence requires every acceptance criterion for requirement-only PASS (ac-not-verified). praxis-core 83d2953 + praxis-runtime bdf1b04: check-test-completeness guard (check:tests in verify), test:security wiring for 3 approval-broker script tests that npm test never ran, quality-ensure exclusion replaced by 5 visible justified skips, validate-plugins early-return fixed. praxis-runtime: runProjectChecks without Story, EVIDENCE_MISSING, removed unauthorized preview-time last-verification.json write. Tests: requirement-only-evidence.test.ts (8), requirement-only.test.ts (6), check-test-completeness.test.mjs (11); negative controls verified.",
+      "contractRef": "DEC-QRO-001",
+      "stale": false
+    }
+  ],
+  "stories": [],
+  "coverage": [],
+  "changes": [],
+  "stage": "in_progress",
+  "history": [
+    {
+      "revision": 1,
+      "stage": "draft",
+      "note": "Quality cannot verify a work item that has requirements but no User Story: verify-stories throws STORY_MISSING and the coverage schema requires a storyId, so requirement-only items can never reach a requirement verdict from executed evidence. Separately, test runs can look green while parts did not run: a workspace test script excludes a whole test file, a test returns early when a directory is missing, and --if-present silently skips workspaces without tests. verify-stories also writes .praxis/"
+    },
+    {
+      "revision": 2,
+      "stage": "in_progress",
+      "note": "ba → architect"
+    }
+  ]
+}
