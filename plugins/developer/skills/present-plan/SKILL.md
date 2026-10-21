@@ -1,14 +1,22 @@
 ---
 name: present-plan
-description: Build and display the exact development / Git action plan before protected mutations.
+description: Show the user the exact development or Git action (preview) before a protected mutation, then let them approve or reject it in the MCP client.
 ---
 
 # Present plan (Developer)
 
-Before claim, complete, commit, publish, or merge-request tools:
+Action, preview, the user approves or rejects, execute, result.
 
-1. Build a `praxis.action.plan` with `decisionKind` of `development_action` or `git_operation`.
-2. Include repository path, branch, remote, operations, and work package ids.
-3. Ordinary edit approval must not authorize push, MR, or release.
-4. Submit to the broker; execute only with the signed token via the privileged executor.
-5. A changed plan, provider, instance, or repository requires a new authorization.
+Before claim, complete, commit, publish, merge-request or connect tools:
+
+1. Preview with the matching `*_preview` tool (for example `praxis_developer_git_preview`, `praxis_developer_git_publish_preview`).
+2. Include the repository path, branch, remote, files, operations and work package ids in what you show.
+3. Each of commit, push and merge request is its own approval: approving a commit does not approve a push or a merge request.
+4. Show the user the plan, then apply (see below).
+
+Approval works the same way everywhere:
+
+- **Preview, then ask.** Call the matching preview tool and show the user what it returned: the exact plan, nothing summarized away. Then call the apply tool with `confirmation=YES` and the `previewFingerprint` from that preview. Praxis asks the user in the MCP client's own approval dialog, which shows the same plan. **Approve** runs exactly that action. **Reject** or dismissing the dialog runs nothing and the tool returns `APPROVAL_REJECTED`.
+- **A client without that dialog.** `praxis_doctor` reports `approval.mode`. When it is `unverified-fallback`, ask the user in chat and call apply with `confirmation=YES` only after they said yes; if they said no, call it with `confirmation=NO` (it records the rejection and runs nothing). Praxis marks such an approval `unverified` and says so in the result: repeat that in your report, never present it as verified.
+- **Your "yes" is not theirs.** Never write approval files, tokens or approval-looking arguments, and never answer a dialog yourself: they authorize nothing.
+- **A changed plan needs a new preview and a new approval.** An approval covers one action and exactly the content that was shown.
