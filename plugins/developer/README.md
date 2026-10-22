@@ -2,7 +2,7 @@
 
 Claude plugin for the Developer role.
 
-**Claude UI / Cowork:** install Praxis Runtime, then import `claude-plugins/praxis-developer.zip`. Requires repository access. Use shared Runtime MCP tools (`praxis_developer_status`, `praxis_developer_claim`, …), not the CLI.
+**Install:** Claude → Customize → Plugins → Add marketplace → `dfg-inc/praxis-marketplace` → choose this plugin (or **Praxis** for the full set); the Runtime is installed with it. Terminal: `/plugin install praxis-developer --marketplace dfg-inc/praxis-marketplace`. Claude Desktop **Chat** has no plugin Runtime: install the separate `praxis-runtime.mcpb`, then upload `claude-plugins/praxis-developer.zip`.. Requires repository access. Use shared Runtime MCP tools (`praxis_developer_status`, `praxis_developer_claim`, …), not the CLI.
 
 **Claude Code / CI:** `praxis developer --help` or `make developer`.
 
